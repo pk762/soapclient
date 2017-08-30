@@ -55,7 +55,7 @@ my $aProducts = [$Product_in_1, $Product_in_2, $Product_in_3];
 $ProductService->create( $aProducts )->result;
 
 # array of product paths that involved in basket tests
-my @ProductPaths = map "Products/$_", qw(ho_1112105010 eg_1000111010 de_3201212002);
+my @ProductPaths = map "Products/$_", qw(myAlias_0001 myAlias_0002 myAlias_0003);
 my $prodInfoResult = $ProductService->getInfo(\@ProductPaths,['GUID'])->result;
 $Data::Dumper::Maxdepth = 2;
     ok( !$prodInfoResult->[0]->{'Error'}, "getInfo product GUIDs: no error" );
@@ -214,7 +214,7 @@ my $basket1 = {
         'TaxArea'           => '/TaxMatrixGermany/EU',
         'TaxModel'          => 'gross',
         'ProductLineItems' => [
-            {'Product' => $GUID{ho_1112105010}, 'Quantity' => '10', 'OrderUnit' => '/Units/piece'},
+            {'Product' => $GUID{myAlias_0001}, 'Quantity' => '10', 'OrderUnit' => '/Units/piece'},
         ],
     },
 };
@@ -240,8 +240,8 @@ my $basket2 = {
         'TaxArea'           => '/TaxMatrixGermany/EU',
         'TaxModel'          => 'gross',
         'ProductLineItems' => [
-            {'Product' => $GUID{ho_1112105010}, 'Quantity' => '2', 'OrderUnit' => '/Units/piece'},
-            {'Product' => $GUID{eg_1000111010}, 'Quantity' => '3', 'OrderUnit' => '/Units/piece'},
+            {'Product' => $GUID{myAlias_0001}, 'Quantity' => '2', 'OrderUnit' => '/Units/piece'},
+            {'Product' => $GUID{myAlias_0002}, 'Quantity' => '3', 'OrderUnit' => '/Units/piece'},
         ],
     },
 };
@@ -265,6 +265,7 @@ $basket2->{'LineItemContainer'}->{'ProductLineItems'}->[0]->{'Quantity'} += $Qua
 $basket2->{'LineItemContainer'}->{'ProductLineItems'}->[1]->{'Quantity'} += $QuantityBefore1;
 testGetInfoReference( $basket2Path, $basket2 );
 
+
 #add 3rd product to basket2
 testUpdateBasket( $basket2Path,  {
     'LineItemContainer' => {
@@ -272,14 +273,14 @@ testUpdateBasket( $basket2Path,  {
         'TaxArea'           => '/TaxMatrixGermany/EU',
         'TaxModel'          => 'gross',
         'ProductLineItems' => [
-            {'Product' => $GUID{de_3201212002}, 'Quantity' => '1'},
+            {'Product' => $GUID{myAlias_0003}, 'Quantity' => '1'},
         ],
     },
 });
 
 #check info of basket2
 push @{$basket2->{LineItemContainer}->{ProductLineItems}},
-    {'Product' => $GUID{de_3201212002}, 'Quantity' => '1', 'OrderUnit' => '/Units/piece'};
+    {'Product' => $GUID{myAlias_0003}, 'Quantity' => '1', 'OrderUnit' => '/Units/piece'};
 my $hBasket = testGetInfoReference( $basket2Path, $basket2 );
 
 #change first line item product to basket2
@@ -338,8 +339,8 @@ my $basket3 = {
         'TaxArea'           => '/TaxMatrixGermany/EU',
         'TaxModel'          => 'gross',
         'ProductLineItems' => [
-            {'Product' => $GUID{ho_1112105010}, 'Quantity' => '2', 'OrderUnit' => '/Units/piece'},
-            {'Product' => $GUID{eg_1000111010}, 'Quantity' => '3', 'OrderUnit' => '/Units/piece'},
+            {'Product' => $GUID{myAlias_0001}, 'Quantity' => '2', 'OrderUnit' => '/Units/piece'},
+            {'Product' => $GUID{myAlias_0002}, 'Quantity' => '3', 'OrderUnit' => '/Units/piece'},
         ],
     },
 };
