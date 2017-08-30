@@ -19,12 +19,49 @@ my $ProductService = WebServiceClient
     ->userinfo( WEBSERVICE_USER )
     ->xmlschema('2001');
 
+# create test products
+my $Product_in_1 = {
+
+    'Alias' => 'myAlias_0001',
+    'StockLevel' => 17,
+    'ProductPrices' => [
+        { 'CurrencyID' => 'EUR', 'Price' => 123, 'TaxModel' => 'gross', },
+    ],
+    'IsAvailable' => SOAP::Data->type('boolean')->value(1)
+};
+
+my $Product_in_2 = {
+
+    'Alias' => 'myAlias_0002',
+    'StockLevel' => 17,
+    'ProductPrices' => [
+        { 'CurrencyID' => 'EUR', 'Price' => 123, 'TaxModel' => 'gross', },
+    ],
+    'IsAvailable' => SOAP::Data->type('boolean')->value(1)
+};
+
+my $Product_in_3 = {
+
+    'Alias' => 'myAlias_0003',
+    'StockLevel' => 17,
+    'ProductPrices' => [
+        { 'CurrencyID' => 'EUR', 'Price' => 123, 'TaxModel' => 'gross', },
+    ],
+    'IsAvailable' => SOAP::Data->type('boolean')->value(1)
+};
+
+my $aProducts = [$Product_in_1, $Product_in_2, $Product_in_3];
+
+$ProductService->create( $aProducts )->result;
+
 # array of product paths that involved in basket tests
 my @ProductPaths = map "Products/$_", qw(ho_1112105010 eg_1000111010 de_3201212002);
 my $prodInfoResult = $ProductService->getInfo(\@ProductPaths,['GUID'])->result;
+$Data::Dumper::Maxdepth = 2;
     ok( !$prodInfoResult->[0]->{'Error'}, "getInfo product GUIDs: no error" );
 # store GUID for easy acces via $GUID{$Alias}
 my %GUID = map { $_->{Alias} => $_->{Attributes}->[0]->{Value} } @$prodInfoResult;
+note("PRODUCT_INFO_RESULT: " . Dumper(%GUID));
 
 
 sub testExistsByPath {
@@ -44,11 +81,13 @@ sub testExistsByPath {
 # Create a Basket and check if the creation was successful
 sub testCreateBasket {
     my ($Basket) = @_;
-
+    #note("PAVEL !!!!!!");
     my $ahResults = $BasketService->create( [$Basket] )->result;
     is( scalar @$ahResults, 1, 'create: result count' );
-
+    #note("\n========================\n:" . Dumper($ahResults));
     my $hCreate = $ahResults->[0];
+    #note("\n========================\n:" . Dumper($hCreate));
+    die unless !$hCreate->{'Error'};
     ok( !$hCreate->{'Error'}, 'create: no error' );
     diag $hCreate->{'Error'}->{'Message'}."\n" if $hCreate->{'Error'};
 
