@@ -476,7 +476,62 @@ sub testDeleteLineItem {
     is( $hDelete->{'deleted'}, 1, 'deleted?' );
 }
 
+sub _createBasketHash {
+
+    return {
+        'LineItemContainer' => {
+            'CurrencyID' => 'EUR',
+            'TaxArea'    => '/TaxMatrixGermany/EU',
+            'TaxModel'   => 'gross',
+        },
+    };
+}
+
+sub _addProductToBasketHash {
+    my ( $hBasket, $ProductAlias, $Quantity ) = @_;
+
+    my $aProductLineItems =
+      $hBasket->{'LineItemContainer'}->{'ProductLineItems'};
+    $aProductLineItems = [] unless defined $aProductLineItems;
+    my $hProduct = {
+        'Product'   => $GUID{$ProductAlias},
+        'Quantity'  => $Quantity,
+        'OrderUnit' => '/Units/piece'
+    };
+
+    push( @$aProductLineItems, $hProduct );
+    $hBasket->{'LineItemContainer'}->{'ProductLineItems'} = $aProductLineItems;
+
+    return $hBasket;
+}
+
+sub _setBillingAddressOnBasketHash {
+
+    my ($hBasket) = @_;
+
+    $hBasket->{'BillingAddress'} = {
+        'BillingAddress' => {
+            'EMail'     => 'mmustermann@epages.de',
+            'FirstName' => 'Max',
+            'LastName'  => 'Mustermann',
+            'Street'    => 'Musterstrasse 2',
+            'Street2'   => 'Ortsteil Niederfingeln',
+            'CodePorte' => '13a',
+        },
+    };
+
+    return $hBasket;
+}
+
+sub _createBasketInDB {
+    my ($hBasket) = @_;
+
+    my $ahResults = $BasketService->create( [$hBasket] )->result;
+
+    return $ahResults;
+}
+
 main();
 
-# run test suite
+1;
 
