@@ -1,5 +1,5 @@
 use strict;
-use Test::More tests => 122;
+use Test::More;
 use Data::Dumper;
 use WebServiceClient;
 use WebServiceConfiguration
@@ -53,6 +53,7 @@ my %GUID;
 sub main {
     init();
     test();
+    done_testing();
 }
 
 sub init() {
@@ -270,12 +271,12 @@ sub fetch_product_guids {
       ( $product_alias_1, $product_alias_2, $product_alias_3 );
     my $prodInfoResult =
       $ProductService->getInfo( \@ProductPaths, ['GUID'] )->result;
-    ok( !$prodInfoResult->[0]->{'Error'}, "getInfo product GUIDs" );
+    ok( !$prodInfoResult->[0]->{'Error'},
+        "'fetch_product_guids: getInfo product GUIDs" );
 
     # store GUID for easy acces via $GUID{$Alias}
     %GUID =
       map { $_->{Alias} => $_->{Attributes}->[0]->{Value} } @$prodInfoResult;
-    note( "PRODUCT_INFO_RESULT: " . Dumper(%GUID) );
 }
 
 sub create_products {
@@ -320,7 +321,7 @@ sub testExistsByPath {
 }
 
 # Create a Basket and check if the creation was successful
-sub testCreateBasket {
+sub testCreateBasket_old {
     my ($Basket) = @_;
 
     #note("PAVEL !!!!!!");
@@ -332,14 +333,13 @@ sub testCreateBasket {
 
     #note("\n========================\n:" . Dumper($hCreate));
     ok( !$hCreate->{'Error'}, 'create: no error' );
-    diag $hCreate->{'Error'}->{'Message'} . "\n" if $hCreate->{'Error'};
 
     is( $hCreate->{'created'}, 1, 'created?' );
 
     return $hCreate->{'Path'};
 }
 
-sub testGetInfoReference {
+sub testGetInfoReference_old {
     my ( $basketPath, $basketRef ) = @_;
 
     my $ahResults = $BasketService->getInfo( [$basketPath], [], [] )->result;
@@ -396,7 +396,7 @@ sub testGetInfoReference {
     return $hInfo;
 }
 
-sub testDeleteBasket {
+sub testDeleteBasket_old {
     my ($basketPath) = @_;
 
     my $ahResults = $BasketService->delete( [$basketPath] )->result;
@@ -410,7 +410,7 @@ sub testDeleteBasket {
     is( $hDelete->{'deleted'}, 1, 'deleted?' );
 }
 
-sub testUpdateBasket {
+sub testUpdateBasket_old {
     my ( $Path, $Basket ) = @_;
     $Basket->{Path} = $Path;
 
@@ -426,7 +426,7 @@ sub testUpdateBasket {
 
 }
 
-sub testAddProductLineItem {
+sub testAddProductLineItem_old {
     my ( $Path, $LineItem, $Basket ) = @_;
     $Basket->{Path} = $Path;
 
@@ -442,7 +442,7 @@ sub testAddProductLineItem {
     is( $hUpdate->{'added'}, 1, 'added?' );
 }
 
-sub testUpdateLineItem {
+sub testUpdateLineItem_old {
     my ( $Path, $LineItem, $Basket ) = @_;
     $Basket->{Path} = $Path;
 
@@ -459,7 +459,7 @@ sub testUpdateLineItem {
     is( $hUpdate->{'updated'}, 1, 'updated?' );
 }
 
-sub testDeleteLineItem {
+sub testDeleteLineItem_old {
     my ( $Path, $LineItemAlias, $Basket ) = @_;
     $Basket->{Path} = $Path;
 
@@ -527,19 +527,20 @@ sub testCreateBasket {
     my $hBasket = _createBasketHash;
 
     my $ahResults = $BasketService->create( [$hBasket] )->result;
-
     is( scalar @$ahResults, 1, 'testCreateBasket: result format' );
 
     my $hCreate = $ahResults->[0];
+    ok( !$hCreate->{'Error'}, 'testCreateBasket: check error' );
+    is( $hCreate->{'created'}, 1, 'testCreateBasket: created?' );
+}
 
-};
-sub testExistsBasket {};
-sub testDeleteBasket {};
-sub testGetInfoFromBasket {};
-sub testUpdateBasket {};
-sub testupdateLineItem {};
-sub testdeleteLineItem {};
-sub testaddProductLineItem {};
+sub testExistsBasket       { }
+sub testDeleteBasket       { }
+sub testGetInfoFromBasket  { }
+sub testUpdateBasket       { }
+sub testupdateLineItem     { }
+sub testdeleteLineItem     { }
+sub testaddProductLineItem { }
 
 sub _createBasketInDB {
     my ($hBasket) = @_;
