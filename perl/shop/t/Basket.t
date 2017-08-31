@@ -58,13 +58,172 @@ my %GUID;
 
 
 sub main {
-    init()
+    init();
+    test();
 }
 
 sub init() {
     cleanup();
     create_products([$Product_in_1, $Product_in_2, $Product_in_3]);
     fetch_product_guids();
+}
+
+sub test {
+    #create basket1 with 1 product
+    my $basket1 = {
+        'LineItemContainer' => {
+            'CurrencyID'        => 'EUR',
+            'TaxArea'           => '/TaxMatrixGermany/EU',
+            'TaxModel'          => 'gross',
+            'ProductLineItems' => [
+                {'Product' => $GUID{$product_alias_1}, 'Quantity' => '10', 'OrderUnit' => '/Units/piece'},
+            ],
+        },
+    };
+
+    #create basket2 with 2 products
+    my $basket2 = {
+        'LineItemContainer' => {
+            'CurrencyID'        => 'EUR',
+            'TaxArea'           => '/TaxMatrixGermany/EU',
+            'TaxModel'          => 'gross',
+            'ProductLineItems' => [
+                {'Product' => $GUID{$product_alias_1}, 'Quantity' => '2', 'OrderUnit' => '/Units/piece'},
+                {'Product' => $GUID{$product_alias_2}, 'Quantity' => '3', 'OrderUnit' => '/Units/piece'},
+            ],
+        },
+    };
+
+    my $basket1Path = testCreateBasket( $basket1 );
+
+    #exists basket1?
+    testExistsByPath( $basket1Path, 1 );
+
+    #check info of basket1
+    testGetInfoReference( $basket1Path, $basket1 );
+
+    #delete basket?
+    testDeleteBasket( $basket1Path );
+
+    #dont exists basket1?
+    testExistsByPath( $basket1Path, 0 );
+
+    my $basket2Path = testCreateBasket( $basket2 );
+
+    #exists basket2?
+    testExistsByPath( $basket2Path, 1 );
+
+    #check info of basket2
+    testGetInfoReference( $basket2Path, $basket2 );
+
+    #update quantity of one product in basket2
+    my $QuantityBefore0 = $basket2->{'LineItemContainer'}->{'ProductLineItems'}->[0]->{'Quantity'};
+    $basket2->{'LineItemContainer'}->{'ProductLineItems'}->[0]->{'Quantity'} = 7;
+    my $QuantityBefore1 = $basket2->{'LineItemContainer'}->{'ProductLineItems'}->[1]->{'Quantity'};
+    $basket2->{'LineItemContainer'}->{'ProductLineItems'}->[1]->{'Quantity'} = 1;
+    testUpdateBasket( $basket2Path, $basket2 );
+
+    #check info of basket2
+    $basket2->{'LineItemContainer'}->{'ProductLineItems'}->[0]->{'Quantity'} += $QuantityBefore0;
+    $basket2->{'LineItemContainer'}->{'ProductLineItems'}->[1]->{'Quantity'} += $QuantityBefore1;
+    testGetInfoReference( $basket2Path, $basket2 );
+
+
+    #add 3rd product to basket2
+    testUpdateBasket( $basket2Path,  {
+            'LineItemContainer' => {
+                'CurrencyID'        => 'EUR',
+                'TaxArea'           => '/TaxMatrixGermany/EU',
+                'TaxModel'          => 'gross',
+                'ProductLineItems' => [
+                    {'Product' => $GUID{$product_alias_3}, 'Quantity' => '1'},
+                ],
+            },
+    });
+
+    my $basket3 = {
+        'BillingAddress' => {
+            'EMail'     => 'mmustermann@epages.de',
+            'FirstName' => 'Max',
+            'LastName'  => 'Mustermann',
+            'Street'    => 'Musterstrasse 2',
+            'Street2'   => 'Ortsteil Niederfingeln',
+            'CodePorte' => '13a',
+        },
+        'LineItemContainer' => {
+            'CurrencyID'        => 'EUR',
+            'TaxArea'           => '/TaxMatrixGermany/EU',
+            'TaxModel'          => 'gross',
+            'ProductLineItems' => [
+                {'Product' => $GUID{$product_alias_1}, 'Quantity' => '2', 'OrderUnit' => '/Units/piece'},
+                {'Product' => $GUID{$product_alias_2}, 'Quantity' => '3', 'OrderUnit' => '/Units/piece'},
+            ],
+        },
+    };
+
+    #check info of basket2
+    push @{$basket2->{LineItemContainer}->{ProductLineItems}},
+        {'Product' => $GUID{$product_alias_3}, 'Quantity' => '1', 'OrderUnit' => '/Units/piece'};
+    my $hBasket = testGetInfoReference( $basket2Path, $basket2 );
+
+    #change first line item product to basket2
+    my $hContainer = $hBasket->{LineItemContainer};
+    my $hLineItem = $hContainer->{'ProductLineItems'}->[0];
+    my $changedProduct = $hLineItem->{Product};
+    my $changedQuantity = 17;
+    my $LineItem = { Alias=>$hLineItem->{Alias}, Quantity=>$changedQuantity, 'OrderUnit' => '/Units/piece'};
+    testUpdateLineItem( $basket2Path, $LineItem,  $basket2 );
+
+    #check info of basket2
+    foreach $LineItem (@{$basket2->{'LineItemContainer'}->{'ProductLineItems'}}) {
+        $LineItem->{'Quantity'} = $changedQuantity if $LineItem->{Product} eq $changedProduct;
+    }
+    $hBasket = testGetInfoReference( $basket2Path, $basket2 );
+
+
+    #remove last changed line item
+    testDeleteLineItem( $basket2Path, $hLineItem->{Alias} );
+
+    #check info of basket2
+    my @Items = grep {$_ if $_->{Product} ne $changedProduct} @{$basket2->{'LineItemContainer'}->{'ProductLineItems'}};
+    $basket2->{'LineItemContainer'}->{'ProductLineItems'} = \@Items;
+    $hBasket = testGetInfoReference( $basket2Path, $basket2 );
+
+
+    #put this prodcut back to basket
+    $LineItem = { 'GUID'=>$changedProduct, 'Quantity'=>$changedQuantity, 'OrderUnit'=>'/Units/piece'};
+    testAddProductLineItem( $basket2Path, $LineItem,  $basket2 );
+
+    #check info of basket2
+    push @{$basket2->{LineItemContainer}->{ProductLineItems}},
+        { 'Product'=>$changedProduct, 'Quantity'=>$changedQuantity, 'OrderUnit'=>'/Units/piece'};
+    testGetInfoReference( $basket2Path, $basket2 );
+
+
+    #delete basket2
+    testDeleteBasket( $basket2Path );
+
+    #dont exists basket2?
+    testExistsByPath( $basket2Path, 0 );
+
+
+    #create basket3 with 2 products and address data
+
+    my $basket3Path = testCreateBasket( $basket3 );
+
+    #chek if exist
+    testExistsByPath( $basket3Path, 1 );
+
+    #check result of creation
+    $hBasket = testGetInfoReference( $basket3Path, $basket3 );
+
+    #delete basket3
+    testDeleteBasket( $basket3Path );
+
+    #dont exists basket3?
+    testExistsByPath( $basket3Path, 0 );
+
+
 }
 
 sub fetch_product_guids {
@@ -243,153 +402,8 @@ main();
 
 # run test suite
 
-#create basket1 with 1 product
-my $basket1 = {
-    'LineItemContainer' => {
-        'CurrencyID'        => 'EUR',
-        'TaxArea'           => '/TaxMatrixGermany/EU',
-        'TaxModel'          => 'gross',
-        'ProductLineItems' => [
-            {'Product' => $GUID{$product_alias_1}, 'Quantity' => '10', 'OrderUnit' => '/Units/piece'},
-        ],
-    },
-};
-my $basket1Path = testCreateBasket( $basket1 );
-
-#exists basket1?
-testExistsByPath( $basket1Path, 1 );
-
-#check info of basket1
-testGetInfoReference( $basket1Path, $basket1 );
-
-#delete basket?
-testDeleteBasket( $basket1Path );
-
-#dont exists basket1?
-testExistsByPath( $basket1Path, 0 );
 
 
-#create basket2 with 2 products
-my $basket2 = {
-    'LineItemContainer' => {
-        'CurrencyID'        => 'EUR',
-        'TaxArea'           => '/TaxMatrixGermany/EU',
-        'TaxModel'          => 'gross',
-        'ProductLineItems' => [
-            {'Product' => $GUID{$product_alias_1}, 'Quantity' => '2', 'OrderUnit' => '/Units/piece'},
-            {'Product' => $GUID{$product_alias_2}, 'Quantity' => '3', 'OrderUnit' => '/Units/piece'},
-        ],
-    },
-};
-my $basket2Path = testCreateBasket( $basket2 );
-
-#exists basket2?
-testExistsByPath( $basket2Path, 1 );
-
-#check info of basket2
-testGetInfoReference( $basket2Path, $basket2 );
-
-#update quantity of one product in basket2
-my $QuantityBefore0 = $basket2->{'LineItemContainer'}->{'ProductLineItems'}->[0]->{'Quantity'};
-$basket2->{'LineItemContainer'}->{'ProductLineItems'}->[0]->{'Quantity'} = 7;
-my $QuantityBefore1 = $basket2->{'LineItemContainer'}->{'ProductLineItems'}->[1]->{'Quantity'};
-$basket2->{'LineItemContainer'}->{'ProductLineItems'}->[1]->{'Quantity'} = 1;
-testUpdateBasket( $basket2Path, $basket2 );
-
-#check info of basket2
-$basket2->{'LineItemContainer'}->{'ProductLineItems'}->[0]->{'Quantity'} += $QuantityBefore0;
-$basket2->{'LineItemContainer'}->{'ProductLineItems'}->[1]->{'Quantity'} += $QuantityBefore1;
-testGetInfoReference( $basket2Path, $basket2 );
 
 
-#add 3rd product to basket2
-testUpdateBasket( $basket2Path,  {
-    'LineItemContainer' => {
-        'CurrencyID'        => 'EUR',
-        'TaxArea'           => '/TaxMatrixGermany/EU',
-        'TaxModel'          => 'gross',
-        'ProductLineItems' => [
-            {'Product' => $GUID{$product_alias_3}, 'Quantity' => '1'},
-        ],
-    },
-});
 
-#check info of basket2
-push @{$basket2->{LineItemContainer}->{ProductLineItems}},
-    {'Product' => $GUID{$product_alias_3}, 'Quantity' => '1', 'OrderUnit' => '/Units/piece'};
-my $hBasket = testGetInfoReference( $basket2Path, $basket2 );
-
-#change first line item product to basket2
-my $hContainer = $hBasket->{LineItemContainer};
-my $hLineItem = $hContainer->{'ProductLineItems'}->[0];
-my $changedProduct = $hLineItem->{Product};
-my $changedQuantity = 17;
-my $LineItem = { Alias=>$hLineItem->{Alias}, Quantity=>$changedQuantity, 'OrderUnit' => '/Units/piece'};
-testUpdateLineItem( $basket2Path, $LineItem,  $basket2 );
-
-#check info of basket2
-foreach $LineItem (@{$basket2->{'LineItemContainer'}->{'ProductLineItems'}}) {
-    $LineItem->{'Quantity'} = $changedQuantity if $LineItem->{Product} eq $changedProduct;
-}
-$hBasket = testGetInfoReference( $basket2Path, $basket2 );
-
-
-#remove last changed line item
-testDeleteLineItem( $basket2Path, $hLineItem->{Alias} );
-
-#check info of basket2
-my @Items = grep {$_ if $_->{Product} ne $changedProduct} @{$basket2->{'LineItemContainer'}->{'ProductLineItems'}};
-$basket2->{'LineItemContainer'}->{'ProductLineItems'} = \@Items;
-$hBasket = testGetInfoReference( $basket2Path, $basket2 );
-
-
-#put this prodcut back to basket
-$LineItem = { 'GUID'=>$changedProduct, 'Quantity'=>$changedQuantity, 'OrderUnit'=>'/Units/piece'};
-testAddProductLineItem( $basket2Path, $LineItem,  $basket2 );
-
-#check info of basket2
-push @{$basket2->{LineItemContainer}->{ProductLineItems}},
-    { 'Product'=>$changedProduct, 'Quantity'=>$changedQuantity, 'OrderUnit'=>'/Units/piece'};
-testGetInfoReference( $basket2Path, $basket2 );
-
-
-#delete basket2
-testDeleteBasket( $basket2Path );
-
-#dont exists basket2?
-testExistsByPath( $basket2Path, 0 );
-
-
-#create basket3 with 2 products and address data
-my $basket3 = {
-    'BillingAddress' => {
-        'EMail'     => 'mmustermann@epages.de',
-        'FirstName' => 'Max',
-        'LastName'  => 'Mustermann',
-        'Street'    => 'Musterstrasse 2',
-        'Street2'   => 'Ortsteil Niederfingeln',
-        'CodePorte' => '13a',
-    },
-    'LineItemContainer' => {
-        'CurrencyID'        => 'EUR',
-        'TaxArea'           => '/TaxMatrixGermany/EU',
-        'TaxModel'          => 'gross',
-        'ProductLineItems' => [
-            {'Product' => $GUID{$product_alias_1}, 'Quantity' => '2', 'OrderUnit' => '/Units/piece'},
-            {'Product' => $GUID{$product_alias_2}, 'Quantity' => '3', 'OrderUnit' => '/Units/piece'},
-        ],
-    },
-};
-my $basket3Path = testCreateBasket( $basket3 );
-
-#chek if exist
-testExistsByPath( $basket3Path, 1 );
-
-#check result of creation
-$hBasket = testGetInfoReference( $basket3Path, $basket3 );
-
-#delete basket3
-testDeleteBasket( $basket3Path );
-
-#dont exists basket3?
-testExistsByPath( $basket3Path, 0 );
