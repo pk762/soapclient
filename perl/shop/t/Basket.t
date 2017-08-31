@@ -19,10 +19,14 @@ my $ProductService = WebServiceClient
     ->userinfo( WEBSERVICE_USER )
     ->xmlschema('2001');
 
+my $product_alias_1 = "prdouctalias1";
+my $product_alias_2 = "prdouctalias2";
+my $product_alias_3 = "prdouctalias3";
+
 # create test products
 my $Product_in_1 = {
 
-    'Alias' => 'myAlias_0001',
+    'Alias' => $product_alias_1,
     'StockLevel' => 17,
     'ProductPrices' => [
         { 'CurrencyID' => 'EUR', 'Price' => 123, 'TaxModel' => 'gross', },
@@ -32,7 +36,7 @@ my $Product_in_1 = {
 
 my $Product_in_2 = {
 
-    'Alias' => 'myAlias_0002',
+    'Alias' => $product_alias_2,
     'StockLevel' => 17,
     'ProductPrices' => [
         { 'CurrencyID' => 'EUR', 'Price' => 123, 'TaxModel' => 'gross', },
@@ -42,7 +46,7 @@ my $Product_in_2 = {
 
 my $Product_in_3 = {
 
-    'Alias' => 'myAlias_0003',
+    'Alias' => $product_alias_3,
     'StockLevel' => 17,
     'ProductPrices' => [
         { 'CurrencyID' => 'EUR', 'Price' => 123, 'TaxModel' => 'gross', },
@@ -50,12 +54,37 @@ my $Product_in_3 = {
     'IsAvailable' => SOAP::Data->type('boolean')->value(1)
 };
 
-my $aProducts = [$Product_in_1, $Product_in_2, $Product_in_3];
 
-$ProductService->create( $aProducts )->result;
+sub main {
+    init()
+}
+
+sub init() {
+    cleanup();
+    create_products([$Product_in_1, $Product_in_2, $Product_in_3]);
+}
+
+sub create_products {
+    my ( $aProducts ) = @_;
+
+    $ProductService->create( $aProducts )->result;
+}
+
+sub cleanup {
+    my $product_alias = @_;
+
+    my $ahResults = $ProductService->exists( ['/Shops/DemoShop/Products/' . $product_alias] )->result;
+
+    return unless $ahResults->[0]->{'exists'};
+
+    $ProductService->delete( ['/Shops/DemoShop/Products/' . $product_alias] );
+}
+
+
+
 
 # array of product paths that involved in basket tests
-my @ProductPaths = map "Products/$_", qw(myAlias_0001 myAlias_0002 myAlias_0003);
+my @ProductPaths = map "Products/$_", ($product_alias_1, $product_alias_2, $product_alias_3);
 my $prodInfoResult = $ProductService->getInfo(\@ProductPaths,['GUID'])->result;
 $Data::Dumper::Maxdepth = 2;
     ok( !$prodInfoResult->[0]->{'Error'}, "getInfo product GUIDs: no error" );
@@ -203,7 +232,7 @@ sub testDeleteLineItem {
 }
 
 
-
+main();
 
 # run test suite
 
@@ -214,7 +243,7 @@ my $basket1 = {
         'TaxArea'           => '/TaxMatrixGermany/EU',
         'TaxModel'          => 'gross',
         'ProductLineItems' => [
-            {'Product' => $GUID{myAlias_0001}, 'Quantity' => '10', 'OrderUnit' => '/Units/piece'},
+            {'Product' => $GUID{$product_alias_1}, 'Quantity' => '10', 'OrderUnit' => '/Units/piece'},
         ],
     },
 };
@@ -240,8 +269,8 @@ my $basket2 = {
         'TaxArea'           => '/TaxMatrixGermany/EU',
         'TaxModel'          => 'gross',
         'ProductLineItems' => [
-            {'Product' => $GUID{myAlias_0001}, 'Quantity' => '2', 'OrderUnit' => '/Units/piece'},
-            {'Product' => $GUID{myAlias_0002}, 'Quantity' => '3', 'OrderUnit' => '/Units/piece'},
+            {'Product' => $GUID{$product_alias_1}, 'Quantity' => '2', 'OrderUnit' => '/Units/piece'},
+            {'Product' => $GUID{$product_alias_2}, 'Quantity' => '3', 'OrderUnit' => '/Units/piece'},
         ],
     },
 };
@@ -273,14 +302,14 @@ testUpdateBasket( $basket2Path,  {
         'TaxArea'           => '/TaxMatrixGermany/EU',
         'TaxModel'          => 'gross',
         'ProductLineItems' => [
-            {'Product' => $GUID{myAlias_0003}, 'Quantity' => '1'},
+            {'Product' => $GUID{$product_alias_3}, 'Quantity' => '1'},
         ],
     },
 });
 
 #check info of basket2
 push @{$basket2->{LineItemContainer}->{ProductLineItems}},
-    {'Product' => $GUID{myAlias_0003}, 'Quantity' => '1', 'OrderUnit' => '/Units/piece'};
+    {'Product' => $GUID{$product_alias_3}, 'Quantity' => '1', 'OrderUnit' => '/Units/piece'};
 my $hBasket = testGetInfoReference( $basket2Path, $basket2 );
 
 #change first line item product to basket2
@@ -339,8 +368,8 @@ my $basket3 = {
         'TaxArea'           => '/TaxMatrixGermany/EU',
         'TaxModel'          => 'gross',
         'ProductLineItems' => [
-            {'Product' => $GUID{myAlias_0001}, 'Quantity' => '2', 'OrderUnit' => '/Units/piece'},
-            {'Product' => $GUID{myAlias_0002}, 'Quantity' => '3', 'OrderUnit' => '/Units/piece'},
+            {'Product' => $GUID{$product_alias_1}, 'Quantity' => '2', 'OrderUnit' => '/Units/piece'},
+            {'Product' => $GUID{$product_alias_2}, 'Quantity' => '3', 'OrderUnit' => '/Units/piece'},
         ],
     },
 };
