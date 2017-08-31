@@ -54,6 +54,8 @@ my $Product_in_3 = {
     'IsAvailable' => SOAP::Data->type('boolean')->value(1)
 };
 
+my %GUID;
+
 
 sub main {
     init()
@@ -62,6 +64,17 @@ sub main {
 sub init() {
     cleanup();
     create_products([$Product_in_1, $Product_in_2, $Product_in_3]);
+    fetch_product_guids();
+}
+
+sub fetch_product_guids {
+    # array of product paths that involved in basket tests
+    my @ProductPaths = map "Products/$_", ($product_alias_1, $product_alias_2, $product_alias_3);
+    my $prodInfoResult = $ProductService->getInfo(\@ProductPaths,['GUID'])->result;
+    ok( !$prodInfoResult->[0]->{'Error'}, "getInfo product GUIDs: no error" );
+    # store GUID for easy acces via $GUID{$Alias}
+    %GUID = map { $_->{Alias} => $_->{Attributes}->[0]->{Value} } @$prodInfoResult;
+    note("PRODUCT_INFO_RESULT: " . Dumper(%GUID));
 }
 
 sub create_products {
@@ -71,27 +84,22 @@ sub create_products {
 }
 
 sub cleanup {
-    my $product_alias = @_;
-
-    my $ahResults = $ProductService->exists( ['/Shops/DemoShop/Products/' . $product_alias] )->result;
-
-    return unless $ahResults->[0]->{'exists'};
-
-    $ProductService->delete( ['/Shops/DemoShop/Products/' . $product_alias] );
+    deleteProductsIfExists([$product_alias_1, $product_alias_2, $product_alias_3]);
 }
 
+sub deleteProductsIfExists {
+    my ( $aProductAliases ) = @_;
 
+    foreach my $Alias (@$aProductAliases) {
+        my $ahResults = $ProductService->exists( ['/Shops/DemoShop/Products/' . $Alias] )->result;
 
+        next unless $ahResults->[0]->{'exists'};
 
-# array of product paths that involved in basket tests
-my @ProductPaths = map "Products/$_", ($product_alias_1, $product_alias_2, $product_alias_3);
-my $prodInfoResult = $ProductService->getInfo(\@ProductPaths,['GUID'])->result;
-$Data::Dumper::Maxdepth = 2;
-    ok( !$prodInfoResult->[0]->{'Error'}, "getInfo product GUIDs: no error" );
-# store GUID for easy acces via $GUID{$Alias}
-my %GUID = map { $_->{Alias} => $_->{Attributes}->[0]->{Value} } @$prodInfoResult;
-note("PRODUCT_INFO_RESULT: " . Dumper(%GUID));
+        $ProductService->delete( ['/Shops/DemoShop/Products/' . $Alias] );
+    }
 
+    return;
+}
 
 sub testExistsByPath {
     my ( $Path, $exists ) = @_;
@@ -116,7 +124,6 @@ sub testCreateBasket {
     #note("\n========================\n:" . Dumper($ahResults));
     my $hCreate = $ahResults->[0];
     #note("\n========================\n:" . Dumper($hCreate));
-    die unless !$hCreate->{'Error'};
     ok( !$hCreate->{'Error'}, 'create: no error' );
     diag $hCreate->{'Error'}->{'Message'}."\n" if $hCreate->{'Error'};
 
