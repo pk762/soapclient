@@ -263,6 +263,7 @@ sub test {
 #    testExistsByPath( $basket3Path, 0 );
     testCreateBasket();
     testExistsBasket();
+    testDeleteBasket();
 }
 
 sub fetch_product_guids {
@@ -532,7 +533,7 @@ sub testCreateBasket {
 
     my $hCreate = $ahResults->[0];
     ok( !$hCreate->{'Error'}, 'testCreateBasket: check error' );
-    is( $hCreate->{'created'}, 1, 'testCreateBasket: created?' );
+    is( $hCreate->{'created'}, 1, 'testCreateBasket: created' );
 }
 
 sub testExistsBasket {
@@ -549,10 +550,26 @@ sub testExistsBasket {
     diag $hExists->{'Error'}->{'Message'} . "\n" if $hExists->{'Error'};
 
     ok( $hExists->{'Path'} eq $BasketPath, 'testExistsBasket: basket path' );
-    is( $hExists->{'exists'}, 1, 'testExistsBasket: exists?' );
+    is( $hExists->{'exists'}, 1, 'testExistsBasket: exists' );
 }
 
-sub testDeleteBasket       { }
+sub testDeleteBasket {
+    my $hBasket        = _createBasketHash;
+    my $ahResultCreate = _createBasketInDB($hBasket);
+
+    my $BasketPath = $ahResultCreate->[0]->{'Path'};
+
+    my $ahResults = $BasketService->delete( [$BasketPath] )->result;
+    is( scalar @$ahResults, 1, 'testDeleteBasket: result count' );
+
+    my $hDelete = $ahResults->[0];
+    ok( !$hDelete->{'Error'}, 'testDeleteBasket: check error' );
+    diag $hDelete->{'Error'}->{'Message'} . "\n" if $hDelete->{'Error'};
+
+    ok( $hDelete->{'Path'} eq $BasketPath, 'testDeleteBasket: basket path' );
+    is( $hDelete->{'deleted'}, 1, 'testDeleteBasket: deleted' );
+}
+
 sub testGetInfoFromBasket  { }
 sub testUpdateBasket       { }
 sub testupdateLineItem     { }
