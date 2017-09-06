@@ -32,7 +32,7 @@ my $Product_in_2 = {
     'Alias'      => $Product_alias_2,
     'StockLevel' => 300,
     'ProductPrices' =>
-    [ { 'CurrencyID' => 'EUR', 'Price' => 1234, 'TaxModel' => 'gross', }, ],
+      [ { 'CurrencyID' => 'EUR', 'Price' => 1234, 'TaxModel' => 'gross', }, ],
     'IsAvailable' => SOAP::Data->type('boolean')->value(1)
 };
 
@@ -84,10 +84,11 @@ sub testDeleteLineItem {
     my $hCreatedBasket = _getInfoReference($BasketPath);
 
     my $LineItemAlias =
-      $hCreatedBasket->{LineItemContainer}->{'ProductLineItems'}->[0]->{'Alias'};
+      $hCreatedBasket->{LineItemContainer}->{'ProductLineItems'}->[0]
+      ->{'Alias'};
 
     my $ahResults =
-        $BasketService->deleteLineItem( $BasketPath, [$LineItemAlias] )->result;
+      $BasketService->deleteLineItem( $BasketPath, [$LineItemAlias] )->result;
     is( scalar @$ahResults, 1, 'testDeleteLineItem: result count' );
 
     my $hDelete = $ahResults->[0];
@@ -95,7 +96,10 @@ sub testDeleteLineItem {
     diag $hDelete->{'Error'}->{'Message'} . "\n" if $hDelete->{'Error'};
 
     my $LineItemPath = "$BasketPath/LineItemContainer/$LineItemAlias";
-    ok( $hDelete->{'Path'} eq $LineItemPath, 'testDeleteLineItem: line item path' );
+    ok(
+        $hDelete->{'Path'} eq $LineItemPath,
+        'testDeleteLineItem: line item path'
+    );
     is( $hDelete->{'deleted'}, 1, 'testDeleteLineItem: deleted' );
 }
 
@@ -128,7 +132,7 @@ sub testDeleteBasket {
 }
 
 sub testaddProductLineItem {
-    my $BasketPath     = _setupTestBasket();
+    my $BasketPath = _setupTestBasket();
 
     my $Quantity = 200;
 
@@ -157,8 +161,9 @@ sub testaddProductLineItem {
 }
 
 sub testGetInfoReference {
-    my $BasketPath     = _setupTestBasket();
-    my $Quantity       = '170';
+    my $BasketPath = _setupTestBasket();
+    my $Quantity   = '170';
+    my $hBasket    = _createBasketHash();
 
     _createProducts( [$Product_in_1] );
     my $ProductGUID = _fetch_product_guid($Product_alias_1);
@@ -266,9 +271,9 @@ sub testUpdateLineItem {
 }
 
 sub testUpdateBasket {
-    my $BasketPath     = _setupTestBasket();
+    my $BasketPath = _setupTestBasket();
 
-    _createProducts( [$Product_in_1, $Product_in_2] );
+    _createProducts( [ $Product_in_1, $Product_in_2 ] );
     my $ProductGUID_1 = _fetch_product_guid($Product_alias_1);
     my $ProductGUID_2 = _fetch_product_guid($Product_alias_2);
 
@@ -277,29 +282,28 @@ sub testUpdateBasket {
         'Quantity' => 50,
     };
     $BasketService->addProductLineItem( $BasketPath, [$ProductLineItem] )
-        ->result;
+      ->result;
 
-    my $UpdateBasket =
-        { 'LineItemContainer' => {
-            'CurrencyID'       => 'EUR',
-            'TaxArea'          => '/TaxMatrixGermany/EU',
-            'TaxModel'         => 'gross',
-            'ProductLineItems' => [
-                { 'Product' => $ProductGUID_2, 'Quantity' => '1' },
-            ],
+    my $UpdateBasket = {
+        'LineItemContainer' => {
+            'CurrencyID' => 'EUR',
+            'TaxArea'    => '/TaxMatrixGermany/EU',
+            'TaxModel'   => 'gross',
+            'ProductLineItems' =>
+              [ { 'Product' => $ProductGUID_2, 'Quantity' => '1' }, ],
         },
     };
     $UpdateBasket->{Path} = $BasketPath;
 
     my $ahResults = $BasketService->update( [$UpdateBasket] )->result;
-    is( scalar @$ahResults, 1, 'update: result count' );
+    is( scalar @$ahResults, 1, 'testUpdateBasket: result count' );
 
     my $hUpdate = $ahResults->[0];
-    ok( !$hUpdate->{'Error'}, 'update: no error' );
+    ok( !$hUpdate->{'Error'}, 'testUpdateBasket: check error' );
     diag $hUpdate->{'Error'}->{'Message'} . "\n" if $hUpdate->{'Error'};
 
-    ok( $hUpdate->{'Path'} eq $BasketPath, 'path path' );
-    is( $hUpdate->{'updated'}, 1, 'updated?' );
+    ok( $hUpdate->{'Path'} eq $BasketPath, 'testUpdateBasket: check path' );
+    is( $hUpdate->{'updated'}, 1, 'testUpdateBasket: updated' );
 }
 
 sub _setupTestBasket {
@@ -322,8 +326,8 @@ sub _deleteProductsIfExists {
 
     foreach my $Alias ($aProductAliases) {
         my $ahResults =
-            $ProductService->exists( [ '/Shops/DemoShop/Products/' . $Alias ] )
-                ->result;
+          $ProductService->exists( [ '/Shops/DemoShop/Products/' . $Alias ] )
+          ->result;
 
         next unless $ahResults->[0]->{'exists'};
 
@@ -407,7 +411,7 @@ sub _getInfoReference {
 }
 
 sub _cleanup {
-    _deleteProductsIfExists( [$Product_alias_1, $Product_alias_2] );
+    _deleteProductsIfExists( [ $Product_alias_1, $Product_alias_2 ] );
 }
 
 main();
